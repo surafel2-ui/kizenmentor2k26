@@ -4,6 +4,7 @@ import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import { initializeApp } from 'firebase/app';
+import firebaseConfig from './firebase-applet-config.json';
 import {
   getFirestore,
   doc,
@@ -79,12 +80,10 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 // Initialize Firebase
 let db: any = null;
 try {
-  const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
-  if (fs.existsSync(configPath)) {
-    const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  if (firebaseConfig && (firebaseConfig as any).projectId) {
     const firebaseApp = initializeApp(firebaseConfig);
-    db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
-    console.log('Firebase Firestore database configured successfully:', firebaseConfig.firestoreDatabaseId);
+    db = getFirestore(firebaseApp, (firebaseConfig as any).firestoreDatabaseId);
+    console.log('Firebase Firestore database configured successfully:', (firebaseConfig as any).firestoreDatabaseId);
     
     // Asynchronously verify connectivity
     getDocFromServer(doc(db, 'test', 'connection'))
@@ -97,7 +96,7 @@ try {
         }
       });
   } else {
-    console.warn('firebase-applet-config.json not found. Falling back to local data store.');
+    console.warn('firebaseConfig.projectId not found. Falling back to local data store.');
   }
 } catch (error) {
   console.error('Failed to initialize Firebase SDK:', error);
