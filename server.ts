@@ -14,7 +14,8 @@ import {
   updateDoc,
   getDoc,
   query,
-  orderBy
+  orderBy,
+  getDocFromServer
 } from 'firebase/firestore';
 
 // Load environment variables
@@ -30,6 +31,51 @@ app.use(express.urlencoded({ extended: true, limit: '12mb' }));
 const DATA_DIR = path.join(process.cwd(), 'src', 'data');
 const DATA_FILE = path.join(DATA_DIR, 'gallery.json');
 
+// Define Firestore standard error types as mandated by firebase-integration skill
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: null,
+      email: null,
+      emailVerified: null,
+      isAnonymous: false,
+      tenantId: null,
+      providerInfo: []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error Detailed Output: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
 // Initialize Firebase
 let db: any = null;
 try {
@@ -39,6 +85,17 @@ try {
     const firebaseApp = initializeApp(firebaseConfig);
     db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
     console.log('Firebase Firestore database configured successfully:', firebaseConfig.firestoreDatabaseId);
+    
+    // Asynchronously verify connectivity
+    getDocFromServer(doc(db, 'test', 'connection'))
+      .then(() => console.log('Firestore connection validation test succeeded.'))
+      .catch((err) => {
+        if (err instanceof Error && err.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration: client is offline.");
+        } else {
+          console.warn("Firestore validation test caught standard permission limits (which is normal before data exists):", err.message);
+        }
+      });
   } else {
     console.warn('firebase-applet-config.json not found. Falling back to local data store.');
   }
@@ -101,8 +158,8 @@ async function getData() {
       const qMessages = query(messagesCol, orderBy('timestamp', 'desc'));
 
       const [photosSnapshot, messagesSnapshot] = await Promise.all([
-        getDocs(qPhotos),
-        getDocs(qMessages)
+        getDocs(qPhotos).catch((err) => handleFirestoreError(err, OperationType.LIST, 'photos')),
+        getDocs(qMessages).catch((err) => handleFirestoreError(err, OperationType.LIST, 'messages'))
       ]);
 
       const photos: any[] = [];
@@ -156,11 +213,11 @@ app.post('/api/photos', async (req, res) => {
   if (db) {
     try {
       const docRef = doc(db, 'photos', newPhoto.id);
-      await setDoc(docRef, newPhoto);
+      await setDoc(docRef, newPhoto).catch((err) => handleFirestoreError(err, OperationType.CREATE, `photos/${newPhoto.id}`));
       return res.json({ success: true, photo: newPhoto });
     } catch (e) {
       console.error('Failed to insert photo in Firestore: ', e);
-      return res.status(500).json({ error: 'Failed to save photo to cloud database.' });
+      return res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to save photo to cloud database.' });
     }
   }
 
@@ -177,11 +234,11 @@ app.delete('/api/photos/:id', async (req, res) => {
   if (db) {
     try {
       const docRef = doc(db, 'photos', id);
-      await deleteDoc(docRef);
+      await deleteDoc(docRef).catch((err) => handleFirestoreError(err, OperationType.DELETE, `photos/${id}`));
       return res.json({ success: true, message: 'Photo deleted successfully' });
     } catch (e) {
       console.error('Failed to delete photo in Firestore: ', e);
-      return res.status(500).json({ error: 'Failed to delete photo from cloud database.' });
+      return res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to delete photo from cloud database.' });
     }
   }
 
@@ -204,16 +261,16 @@ app.post('/api/photos/:id/like', async (req, res) => {
   if (db) {
     try {
       const docRef = doc(db, 'photos', id);
-      const docSnap = await getDoc(docRef);
+      const docSnap = await getDoc(docRef).catch((err) => handleFirestoreError(err, OperationType.GET, `photos/${id}`));
       if (!docSnap.exists()) {
         return res.status(404).json({ error: 'Photo not found' });
       }
       const newLikes = (docSnap.data().likes || 0) + 1;
-      await updateDoc(docRef, { likes: newLikes });
+      await updateDoc(docRef, { likes: newLikes }).catch((err) => handleFirestoreError(err, OperationType.UPDATE, `photos/${id}`));
       return res.json({ success: true, likes: newLikes });
     } catch (e) {
       console.error('Failed to increment likes in Firestore: ', e);
-      return res.status(500).json({ error: 'Failed to save like update to cloud database.' });
+      return res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to save like update to cloud database.' });
     }
   }
 
@@ -245,11 +302,11 @@ app.post('/api/messages', async (req, res) => {
   if (db) {
     try {
       const docRef = doc(db, 'messages', newMessage.id);
-      await setDoc(docRef, newMessage);
+      await setDoc(docRef, newMessage).catch((err) => handleFirestoreError(err, OperationType.CREATE, `messages/${newMessage.id}`));
       return res.json({ success: true, message: newMessage });
     } catch (e) {
       console.error('Failed to insert message in Firestore: ', e);
-      return res.status(500).json({ error: 'Failed to save message to cloud database.' });
+      return res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to save message to cloud database.' });
     }
   }
 
@@ -266,11 +323,11 @@ app.delete('/api/messages/:id', async (req, res) => {
   if (db) {
     try {
       const docRef = doc(db, 'messages', id);
-      await deleteDoc(docRef);
+      await deleteDoc(docRef).catch((err) => handleFirestoreError(err, OperationType.DELETE, `messages/${id}`));
       return res.json({ success: true });
     } catch (e) {
       console.error('Failed to delete message in Firestore: ', e);
-      return res.status(500).json({ error: 'Failed to delete message from cloud database.' });
+      return res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to delete message from cloud database.' });
     }
   }
 

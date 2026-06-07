@@ -37,6 +37,7 @@ export default function App() {
         const data = await response.json();
         setPhotos(data.photos || []);
         setMessages(data.messages || []);
+        setErrorMessage('');
       } else {
         setErrorMessage('Unable to connect with full-stack storage. Switched to offline memory sandbox.');
       }
