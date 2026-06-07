@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,400&family=Great+Vibes&family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Crimson Pro", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Cinzel", "Times New Roman", serif;
+  --font-script: "Great Vibes", cursive;
+  
+  --color-maroon-950: #240306;
+  --color-maroon-900: #3b050a;
+  --color-maroon-800: #570911;
+  --color-maroon-700: #78101a;
+  --color-maroon-600: #9c1b27;
+  
+  --color-gold-100: #fef8dd;
+  --color-gold-200: #fced9c;
+  --color-gold-300: #f5da63;
+  --color-gold-400: #e5be3c;
+  --color-gold-500: #d4af37;
+  --color-gold-600: #b59026;
+  --color-gold-700: #937119;
+  --color-gold-800: #705211;
+  --color-gold-900: #493309;
+}
+
+/* Custom styles for high-fidelity binder appearance */
+
+.gold-gradient-bg {
+  background: linear-gradient(135deg, #aa771c 0%, #fced9c 25%, #d4af37 50%, #fef8dd 75%, #aa771c 100%);
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, #fef8dd 0%, #fced9c 15%, #d4af37 50%, #aa771c 85%, #fef8dd 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #d4af37;
+}
+
+.gold-border-gradient {
+  border-image: linear-gradient(135deg, #705211 0%, #d4af37 50%, #fef8dd 100%) 1;
+}
+
+/* Leather Texture Simulation via SVG filter overlay or noise */
+.binder-leather {
+  background-color: #3b050a;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(120, 16, 26, 0.4) 0%, rgba(36, 3, 6, 0.95) 100%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+.binder-inside-pages {
+  background-color: #f7f3e9; /* High-quality aged ivory paper */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.4' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+/* Gold embossing visual depth style */
+.embossed-gold {
+  color: #3b050a;
+  text-shadow: 
+    -0.5px -0.5px 0.5px rgba(254, 248, 221, 0.8),
+    0.5px 0.5px 1px rgba(73, 51, 9, 0.9),
+    0px 0px 8px rgba(212, 175, 55, 0.4);
+}
+
+.embossed-gold-text {
+  background: linear-gradient(135deg, #fef8dd 0%, #d4af37 40%, #aa771c 80%, #fced9c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(1px 1px 1.5px rgba(0, 0, 0, 0.85)) drop-shadow(0px 0px 4px rgba(212, 175, 55, 0.3));
+}
+
+.embossed-panel {
+  box-shadow: 
+    inset 2px 2px 5px rgba(0,0,0,0.8), 
+    inset -2px -2px 5px rgba(255,255,255,0.05),
+    0 1px 1px rgba(255,255,255,0.1);
+}
+
+.embossed-border {
+  position: relative;
+}
+
+.embossed-border::before {
+  content: '';
+  position: absolute;
+  top: 4px; left: 4px; right: 4px; bottom: 4px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  pointer-events: none;
+}
+
+.embossed-border::after {
+  content: '';
+  position: absolute;
+  top: 10px; left: 10px; right: 10px; bottom: 10px;
+  border: 1px dashed rgba(212, 175, 55, 0.15);
+  pointer-events: none;
+}
+
+/* Customized scrollbar for gorgeous look */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #240306;
+}
+::-webkit-scrollbar-thumb {
+  background: #aa771c;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d4af37;
+}
+
+/* Page flip simulation effects */
+.page-container {
+  perspective: 1500px;
+}
+
+.open-page-left {
+  transform-origin: right center;
+  transition: transform 1.2s cubic-bezier(0.15, 0.9, 0.34, 1.01);
+}
+
+.open-page-right {
+  transform-origin: left center;
+  transition: transform 1.2s cubic-bezier(0.15, 0.9, 0.34, 1.01);
+}
