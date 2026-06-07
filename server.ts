@@ -5,6 +5,7 @@ import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import { initializeApp } from 'firebase/app';
 import firebaseConfig from './firebase-applet-config.json';
+import firebaseConfig from './firebase-applet-config.json';
 import {
   getFirestore,
   doc,
@@ -25,9 +26,16 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
+// Fix for Vercel Serverless routing: restore req.url to req.originalUrl if rewritten
+app.use((req, res, next) => {
+  if (req.originalUrl && req.originalUrl.startsWith('/api')) {
+    req.url = req.originalUrl;
+  }
+  next();
+});
+
 // Enable body parsing with elevated limits for base64 photo uploads
 app.use(express.json({ limit: '12mb' }));
-app.use(express.urlencoded({ extended: true, limit: '12mb' }));
 
 const DATA_DIR = path.join(process.cwd(), 'src', 'data');
 const DATA_FILE = path.join(DATA_DIR, 'gallery.json');
@@ -78,12 +86,13 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 // Initialize Firebase
+// Initialize Firebase
 let db: any = null;
 try {
-  if (firebaseConfig && (firebaseConfig as any).projectId) {
+  if (firebaseConfig && firebaseConfig.projectId) {
     const firebaseApp = initializeApp(firebaseConfig);
-    db = getFirestore(firebaseApp, (firebaseConfig as any).firestoreDatabaseId);
-    console.log('Firebase Firestore database configured successfully:', (firebaseConfig as any).firestoreDatabaseId);
+    db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
+    console.log('Firebase Firestore database configured successfully:', firebaseConfig.firestoreDatabaseId);
     
     // Asynchronously verify connectivity
     getDocFromServer(doc(db, 'test', 'connection'))
@@ -96,7 +105,7 @@ try {
         }
       });
   } else {
-    console.warn('firebaseConfig.projectId not found. Falling back to local data store.');
+    console.warn('Firebase config is empty or invalid. Falling back to local data store.');
   }
 } catch (error) {
   console.error('Failed to initialize Firebase SDK:', error);
