@@ -179,6 +179,7 @@ async function getData() {
       return { photos, messages };
     } catch (e) {
       console.error('Firebase fetching failed, using local database fallback:', e);
+      return readLocalData();
     }
   }
   return readLocalData();
